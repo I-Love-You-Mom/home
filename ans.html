@@ -23,6 +23,15 @@
             background: #e0fff4;
             border-radius: 8px;
             border-left: 4px solid #2e8b57;
+            position: relative;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+        .answer.trash-mode {
+            padding-left: 48px;
+        }
+        .answer.selected {
+            background: #ffe0e6;
+            box-shadow: 0 0 0 2px #ffb6c1;
         }
         .question {
             font-weight: bold;
@@ -32,23 +41,172 @@
             font-size: 1.1em;
             margin-top: 40px;
         }
+        .trash-btn, .exit-btn, .delete-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.6em;
+            margin-right: 10px;
+            vertical-align: middle;
+            transition: transform 0.1s;
+        }
+        .trash-btn:hover, .delete-btn:hover {
+            color: #e74c3c;
+            transform: scale(1.1);
+        }
+        .exit-btn {
+            color: #888;
+        }
+        .exit-btn:hover {
+            color: #333;
+            transform: scale(1.1) rotate(90deg);
+        }
+        .select-circle {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid #ffb6c1;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s, border 0.2s;
+            z-index: 2;
+        }
+        .select-circle.selected {
+            background: #ffb6c1;
+            border-color: #ff69b4;
+        }
+        .select-circle::after {
+            content: '';
+            display: block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff69b4;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .select-circle.selected::after {
+            opacity: 1;
+        }
+        .toolbar {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toolbar .delete-btn[disabled] {
+            color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
     </style>
 </head>
 <body>
     <h1>Mom's Answers</h1>
+    <div class="toolbar">
+        <button class="trash-btn" title="Delete answers" id="start-trash">&#128465;</button>
+        <button class="exit-btn" title="Exit trash mode" id="exit-trash" style="display:none;">&#10005;</button>
+        <button class="delete-btn" title="Delete selected" id="delete-selected" style="display:none;" disabled>&#128465;</button>
+    </div>
     <div id="answers"></div>
     <script>
-        // Retrieve answers from localStorage
-        const answers = JSON.parse(localStorage.getItem('mothersDayAnswers') || "[]");
-        let output = "";
-        if (answers.length === 0) {
-            output = "<div class='no-answers'>No answers found.<br>(Make sure the quiz was completed on this device and browser!)</div>";
-        } else {
-            answers.forEach((item, idx) => {
-                output += `<div class="answer"><span class="question">${idx+1}. ${item.question}</span><br>Answer: ${item.answer}</div>`;
-            });
+        // Load answers from localStorage
+        function getAnswers() {
+            return JSON.parse(localStorage.getItem('mothersDayAnswers') || "[]");
         }
-        document.getElementById('answers').innerHTML = output;
+        function setAnswers(arr) {
+            localStorage.setItem('mothersDayAnswers', JSON.stringify(arr));
+        }
+
+        let trashMode = false;
+        let selected = new Set();
+
+        function renderAnswers() {
+            const answers = getAnswers();
+            let output = "";
+            if (answers.length === 0) {
+                output = "<div class='no-answers'>No answers found.<br>(Make sure the quiz was completed on this device and browser!)</div>";
+            } else {
+                answers.forEach((item, idx) => {
+                    output += `
+                        <div class="answer${trashMode ? " trash-mode" : ""}${selected.has(idx) ? " selected" : ""}" data-idx="${idx}">
+                            ${trashMode ? `<span class="select-circle${selected.has(idx) ? " selected" : ""}" data-idx="${idx}"></span>` : ""}
+                            <span class="question">${idx+1}. ${item.question}</span><br>
+                            Answer: ${item.answer}
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('answers').innerHTML = output;
+
+            // Attach events for selection in trash mode
+            if (trashMode) {
+                document.querySelectorAll('.select-circle').forEach(circle => {
+                    circle.onclick = function(e) {
+                        const idx = Number(this.getAttribute('data-idx'));
+                        if (selected.has(idx)) {
+                            selected.delete(idx);
+                        } else {
+                            selected.add(idx);
+                        }
+                        renderAnswers();
+                        updateDeleteBtn();
+                    };
+                });
+            }
+        }
+
+        function updateDeleteBtn() {
+            const btn = document.getElementById('delete-selected');
+            btn.disabled = selected.size === 0;
+        }
+
+        // Trash mode handlers
+        document.getElementById('start-trash').onclick = function() {
+            trashMode = true;
+            selected = new Set();
+            document.getElementById('exit-trash').style.display = '';
+            document.getElementById('delete-selected').style.display = '';
+            this.style.display = 'none';
+            renderAnswers();
+            updateDeleteBtn();
+        };
+        document.getElementById('exit-trash').onclick = function() {
+            trashMode = false;
+            selected = new Set();
+            document.getElementById('start-trash').style.display = '';
+            document.getElementById('exit-trash').style.display = 'none';
+            document.getElementById('delete-selected').style.display = 'none';
+            renderAnswers();
+        };
+        document.getElementById('delete-selected').onclick = function() {
+            if (selected.size === 0) return;
+            // Confirm deletion
+            if (window.confirm("Are you sure you want to delete the selected answer(s)?")) { // [1][3][4][5][6]
+                let answers = getAnswers();
+                // Remove selected (from highest index to lowest to avoid reindexing issues)
+                const toDelete = Array.from(selected).sort((a,b) => b-a);
+                toDelete.forEach(idx => answers.splice(idx,1));
+                setAnswers(answers);
+                selected = new Set();
+                renderAnswers();
+                updateDeleteBtn();
+                if (answers.length === 0) {
+                    // Exit trash mode if nothing left
+                    document.getElementById('exit-trash').click();
+                }
+            }
+        };
+
+        // Initial render
+        renderAnswers();
     </script>
 </body>
 </html>
