@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mother's Day Escape Room</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #fff7f0;
+            color: #333;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+            position: relative;
+        }
+        #question-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 350px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        .question-label {
+            font-size: 1.3em;
+            margin-bottom: 16px;
+        }
+        #question-input {
+            font-size: 1.1em;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin-bottom: 12px;
+            width: 250px;
+            text-align: center;
+        }
+        #next-btn {
+            background: #ffb6c1;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #next-btn:hover {
+            background: #ff69b4;
+            color: #fff;
+        }
+        #poem {
+            display: none;
+            background: #fff0f6;
+            border: 2px solid #ffb6c1;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 30px;
+            font-size: 1.18em;
+            white-space: pre-line;
+            min-height: 200px;
+            position: relative;
+            text-align: left;
+        }
+        /* Animations for question transitions */
+        .fade-in { animation: fadeIn 0.6s; }
+        .slide-in { animation: slideIn 0.6s; }
+        .bounce-in { animation: bounceIn 0.6s; }
+        .spin-in { animation: spinIn 0.6s; }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-80px);}
+            to { opacity: 1; transform: translateX(0);}
+        }
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.3);}
+            50% { opacity: 1; transform: scale(1.1);}
+            70% { transform: scale(0.9);}
+            100% { transform: scale(1);}
+        }
+        @keyframes spinIn {
+            from { opacity: 0; transform: rotate(-360deg) scale(0.3);}
+            to { opacity: 1; transform: rotate(0deg) scale(1);}
+        }
+        /* Bounce for poem lines */
+        .poem-bounce {
+            animation: poemBounce 0.5s;
+        }
+        @keyframes poemBounce {
+            0% { transform: translateY(0);}
+            30% { transform: translateY(-12px);}
+            60% { transform: translateY(4px);}
+            100% { transform: translateY(0);}
+        }
+        /* Confetti styles */
+        .confetti {
+            position: fixed;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            opacity: 0.8;
+            z-index: 9999;
+            pointer-events: none;
+            animation: confetti-fall 1.5s linear forwards;
+        }
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(350px) rotate(360deg);
+                opacity: 0.2;
+            }
+        }
+        /* Heart emoji styles */
+        #hearts-container {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .heart-emoji {
+            position: absolute;
+            font-size: 2em;
+            opacity: 0;
+            transition: opacity 1.2s;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align:center;">Mother's Day Escape Room</h1>
+    <div id="question-area"></div>
+    <div id="hearts-container"></div>
+    <div id="poem"></div>
+    <script>
+        // Questions
+        const questions = [
+            "What is your favorite color?",
+            "Where have you always wanted to travel?",
+            "What is your favorite food?",
+            "What is your favorite flower?",
+            "What is your favorite song?",
+            "What is your favorite movie?",
+            "What is your favorite dessert?",
+            "What is your favorite holiday?",
+            "What is one thing you are proud of?",
+            "What is your happiest memory with me?"
+        ];
+        // Poem text
+        const poemText = `Hello Mom, I know I haven't always been the best, but I'm just letting you know I try my hardest. And although you may think that you do a lot for me, you do way more than you think. You do so much for me that I look up to you every day and say, I'm glad that I have you as my mom. You're very sweet and very kind. You always put me first, and I would love to live the rest of my life knowing that you were my mom. I would love to spend the whole day with you after this game, and I really want to just say that I love you. Although I may not have a favorite memory of you, every day I spend with you will always be my favorite. I will always cherish everything I can do with you, and I will love you so much for all of it. I love how you're always there for me and how you'll never stop loving me no matter what. I'm glad that you do, and I'm glad that you will. And I'm glad that you always wait for me through thick and thin every day, and I know that you always do your best that you can with me.
+
+I Love You, Mom!
+
+- Nicholas`;
+
+        const confettiColors = ["#ffb6c1", "#ff69b4", "#ffecb3", "#b3ffd9", "#b3c6ff", "#f7a8b8", "#ffe066", "#7afcff"];
+        // Animation classes for question transitions
+        const anims = ["fade-in", "slide-in", "bounce-in", "spin-in"];
+
+        let current = 0;
+        let answers = [];
+
+        // Heart emojis logic
+        const heartEmojis = ["❤️","💖","💗","💓","💕","💞","💝"];
+        const heartsCount = 8; // Number of hearts to show
+        let hearts = [];
+
+        function createHearts() {
+            const container = document.getElementById('hearts-container');
+            container.innerHTML = "";
+            // Position hearts around the question area (corners, sides, not center)
+            // Positions are percentages relative to container
+            const positions = [
+                {top: "10%", left: "5%"},
+                {top: "10%", right: "5%"},
+                {bottom: "10%", left: "5%"},
+                {bottom: "10%", right: "5%"},
+                {top: "25%", left: "0%"},
+                {bottom: "25%", right: "0%"},
+                {top: "50%", left: "2%"},
+                {top: "50%", right: "2%"}
+            ];
+            hearts = [];
+            for (let i = 0; i < heartsCount; i++) {
+                let heart = document.createElement("span");
+                heart.className = "heart-emoji";
+                heart.textContent = heartEmojis[Math.floor(Math.random()*heartEmojis.length)];
+                Object.assign(heart.style, positions[i]);
+                container.appendChild(heart);
+                hearts.push(heart);
+            }
+        }
+        function animateHearts() {
+            hearts.forEach((heart, i) => {
+                function fadeLoop() {
+                    if (!heart.parentElement) return; // If removed, stop
+                    heart.style.opacity = 1;
+                    setTimeout(() => {
+                        heart.style.opacity = 0;
+                        setTimeout(fadeLoop, 1200 + Math.random()*1200);
+                    }, 1200 + Math.random()*1200);
+                }
+                setTimeout(fadeLoop, i*200);
+            });
+        }
+        function showHearts() {
+            document.getElementById('hearts-container').style.display = "block";
+            createHearts();
+            animateHearts();
+        }
+        function hideHearts() {
+            document.getElementById('hearts-container').style.display = "none";
+        }
+
+        function showQuestion(idx) {
+            const area = document.getElementById('question-area');
+            area.style.display = "flex";
+            area.innerHTML = "";
+            let anim = anims[Math.floor(Math.random() * anims.length)];
+            let qDiv = document.createElement('div');
+            qDiv.className = anim;
+            qDiv.innerHTML = `
+                <div class="question-label"><strong>Question ${idx+1}:</strong><br>${questions[idx]}</div>
+                <input id="question-input" type="text" autocomplete="off" autofocus>
+                <br>
+                <button id="next-btn">${idx === questions.length-1 ? "Finish & See Poem" : "Next"}</button>
+            `;
+            area.appendChild(qDiv);
+
+            // Focus input after animation
+            setTimeout(() => {
+                document.getElementById('question-input').focus();
+            }, 400);
+
+            document.getElementById('next-btn').onclick = function(e) {
+                e.preventDefault();
+                const val = document.getElementById('question-input').value.trim();
+                if (!val) {
+                    document.getElementById('question-input').focus();
+                    return;
+                }
+                answers[idx] = { question: questions[idx], answer: val };
+                if (idx < questions.length - 1) {
+                    current++;
+                    showQuestion(current);
+                } else {
+                    saveAndShowPoem();
+                }
+            };
+            // Allow Enter key to submit
+            document.getElementById('question-input').onkeydown = function(e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    document.getElementById('next-btn').click();
+                }
+            };
+        }
+
+        function showPoemAnimated(text) {
+            const poemDiv = document.getElementById('poem');
+            poemDiv.innerHTML = "";
+            let i = 0;
+            let lineStart = 0;
+            function typeChar() {
+                if (i <= text.length) {
+                    let current = text.slice(0, i);
+                    poemDiv.innerHTML = "";
+                    let lines = current.split('\n');
+                    lines.forEach((line, idx) => {
+                        let span = document.createElement('span');
+                        span.textContent = line;
+                        // Bounce each line as it finishes
+                        if (i !== 0 && (i === text.length || (i > 1 && text[i-1] === '\n')) && idx === lines.length-1) {
+                            span.classList.add('poem-bounce');
+                        }
+                        poemDiv.appendChild(span);
+                        poemDiv.appendChild(document.createElement('br'));
+                    });
+                    if (i < text.length) {
+                        i++;
+                        setTimeout(typeChar, 18 + Math.random() * 30);
+                    }
+                }
+            }
+            typeChar();
+        }
+
+        function showConfetti() {
+            for (let i = 0; i < 40; i++) {
+                let conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.background = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+                conf.style.left = (Math.random() * 95) + "vw";
+                conf.style.top = "-20px";
+                conf.style.transform = `rotate(${Math.random()*360}deg)`;
+                conf.style.animationDuration = (1 + Math.random()).toFixed(2) + "s";
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), 1800);
+            }
+        }
+
+        function saveAndShowPoem() {
+            // Save to localStorage
+            localStorage.setItem('mothersDayAnswers', JSON.stringify(answers));
+            // Hide questions and hearts, show poem
+            document.getElementById('question-area').style.display = "none";
+            hideHearts();
+            document.getElementById('poem').style.display = "block";
+            showConfetti();
+            showPoemAnimated(poemText);
+        }
+
+        // Start
+        showQuestion(current);
+        showHearts();
+    </script>
+</body>
+</html>
