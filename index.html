@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Mother's Day Escape Room</title>
-    <link rel="icon" type="image/x-icon" href="https://static.vecteezy.com/system/resources/previews/001/187/754/non_2x/heart-mom-tatttoo-png.png">
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -15,9 +14,50 @@
             border-radius: 12px;
             box-shadow: 0 6px 24px rgba(0,0,0,0.08);
             position: relative;
+            overflow-x: hidden;
         }
-        #question-area {
+        /* Start menu overlay */
+        #start-menu {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #ffffffee;
             display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 1s ease;
+        }
+        #start-menu.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #start-menu h2 {
+            color: turquoise;
+            font-size: 2.8em;
+            margin-bottom: 30px;
+            text-align: center;
+            user-select: none;
+        }
+        #start-btn {
+            background: turquoise;
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            font-size: 1.3em;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(64,224,208,0.6);
+            transition: background-color 0.3s ease;
+            user-select: none;
+        }
+        #start-btn:hover {
+            background: #40e0d0cc;
+        }
+
+        /* Quiz content */
+        #question-area {
+            display: none; /* Hidden initially, shown after start */
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -132,12 +172,18 @@
     </style>
 </head>
 <body>
+    <div id="start-menu">
+        <h2>Happy Mother's Day, Mom</h2>
+        <button id="start-btn">Start</button>
+    </div>
+
     <h1 style="text-align:center;">Mother's Day Escape Room</h1>
     <div id="question-area"></div>
     <div id="hearts-container"></div>
     <div id="poem"></div>
+
     <script>
-        // Questions
+        // Variables and constants
         const questions = [
             "What is your favorite color?",
             "Where have you always wanted to travel?",
@@ -150,7 +196,6 @@
             "What is one thing you are proud of?",
             "What is your happiest memory with me?"
         ];
-        // Poem text
         const poemText = `Hello Mom, I know I haven't always been the best, but I'm just letting you know I try my hardest. And although you may think that you do a lot for me, you do way more than you think. You do so much for me that I look up to you every day and say, I'm glad that I have you as my mom. You're very sweet and very kind. You always put me first, and I would love to live the rest of my life knowing that you were my mom. I would love to spend the whole day with you after this game, and I really want to just say that I love you. Although I may not have a favorite memory of you, every day I spend with you will always be my favorite. I will always cherish everything I can do with you, and I will love you so much for all of it. I love how you're always there for me and how you'll never stop loving me no matter what. I'm glad that you do, and I'm glad that you will. And I'm glad that you always wait for me through thick and thin every day, and I know that you always do your best that you can with me.
 
 I Love You, Mom!
@@ -158,68 +203,35 @@ I Love You, Mom!
 - Nicholas`;
 
         const confettiColors = ["#ffb6c1", "#ff69b4", "#ffecb3", "#b3ffd9", "#b3c6ff", "#f7a8b8", "#ffe066", "#7afcff"];
-        // Animation classes for question transitions
         const anims = ["fade-in", "slide-in", "bounce-in", "spin-in"];
+        const heartEmojis = ["❤️","💖","💗","💓","💕","💞","💝"];
+        const heartsCount = 8;
 
         let current = 0;
         let answers = [];
-
-        // Heart emojis logic
-        const heartEmojis = ["❤️","💖","💗","💓","💕","💞","💝"];
-        const heartsCount = 8; // Number of hearts to show
         let hearts = [];
 
-        function createHearts() {
-            const container = document.getElementById('hearts-container');
-            container.innerHTML = "";
-            // Position hearts around the question area (corners, sides, not center)
-            // Positions are percentages relative to container
-            const positions = [
-                {top: "10%", left: "5%"},
-                {top: "10%", right: "5%"},
-                {bottom: "10%", left: "5%"},
-                {bottom: "10%", right: "5%"},
-                {top: "25%", left: "0%"},
-                {bottom: "25%", right: "0%"},
-                {top: "50%", left: "2%"},
-                {top: "50%", right: "2%"}
-            ];
-            hearts = [];
-            for (let i = 0; i < heartsCount; i++) {
-                let heart = document.createElement("span");
-                heart.className = "heart-emoji";
-                heart.textContent = heartEmojis[Math.floor(Math.random()*heartEmojis.length)];
-                Object.assign(heart.style, positions[i]);
-                container.appendChild(heart);
-                hearts.push(heart);
-            }
-        }
-        function animateHearts() {
-            hearts.forEach((heart, i) => {
-                function fadeLoop() {
-                    if (!heart.parentElement) return; // If removed, stop
-                    heart.style.opacity = 1;
-                    setTimeout(() => {
-                        heart.style.opacity = 0;
-                        setTimeout(fadeLoop, 1200 + Math.random()*1200);
-                    }, 1200 + Math.random()*1200);
-                }
-                setTimeout(fadeLoop, i*200);
-            });
-        }
-        function showHearts() {
-            document.getElementById('hearts-container').style.display = "block";
-            createHearts();
-            animateHearts();
-        }
-        function hideHearts() {
-            document.getElementById('hearts-container').style.display = "none";
-        }
+        // Elements
+        const startMenu = document.getElementById('start-menu');
+        const questionArea = document.getElementById('question-area');
+        const poemDiv = document.getElementById('poem');
+        const heartsContainer = document.getElementById('hearts-container');
 
+        // Start button click handler
+        document.getElementById('start-btn').onclick = () => {
+            startMenu.classList.add('hidden');
+            // After fade out (1s), hide start menu and show quiz
+            setTimeout(() => {
+                startMenu.style.display = 'none';
+                questionArea.style.display = 'flex';
+                showHearts();
+                showQuestion(current);
+            }, 1000);
+        };
+
+        // Show question with animation
         function showQuestion(idx) {
-            const area = document.getElementById('question-area');
-            area.style.display = "flex";
-            area.innerHTML = "";
+            questionArea.innerHTML = "";
             let anim = anims[Math.floor(Math.random() * anims.length)];
             let qDiv = document.createElement('div');
             qDiv.className = anim;
@@ -229,9 +241,8 @@ I Love You, Mom!
                 <br>
                 <button id="next-btn">${idx === questions.length-1 ? "Finish & See Poem" : "Next"}</button>
             `;
-            area.appendChild(qDiv);
+            questionArea.appendChild(qDiv);
 
-            // Focus input after animation
             setTimeout(() => {
                 document.getElementById('question-input').focus();
             }, 400);
@@ -251,7 +262,6 @@ I Love You, Mom!
                     saveAndShowPoem();
                 }
             };
-            // Allow Enter key to submit
             document.getElementById('question-input').onkeydown = function(e) {
                 if (e.key === "Enter") {
                     e.preventDefault();
@@ -260,11 +270,55 @@ I Love You, Mom!
             };
         }
 
+        // Hearts creation and animation
+        function createHearts() {
+            heartsContainer.innerHTML = "";
+            const positions = [
+                {top: "10%", left: "5%"},
+                {top: "10%", right: "5%"},
+                {bottom: "10%", left: "5%"},
+                {bottom: "10%", right: "5%"},
+                {top: "25%", left: "0%"},
+                {bottom: "25%", right: "0%"},
+                {top: "50%", left: "2%"},
+                {top: "50%", right: "2%"}
+            ];
+            hearts = [];
+            for (let i = 0; i < heartsCount; i++) {
+                let heart = document.createElement("span");
+                heart.className = "heart-emoji";
+                heart.textContent = heartEmojis[Math.floor(Math.random()*heartEmojis.length)];
+                Object.assign(heart.style, positions[i]);
+                heartsContainer.appendChild(heart);
+                hearts.push(heart);
+            }
+        }
+        function animateHearts() {
+            hearts.forEach((heart, i) => {
+                function fadeLoop() {
+                    if (!heart.parentElement) return;
+                    heart.style.opacity = 1;
+                    setTimeout(() => {
+                        heart.style.opacity = 0;
+                        setTimeout(fadeLoop, 1200 + Math.random()*1200);
+                    }, 1200 + Math.random()*1200);
+                }
+                setTimeout(fadeLoop, i*200);
+            });
+        }
+        function showHearts() {
+            heartsContainer.style.display = "block";
+            createHearts();
+            animateHearts();
+        }
+        function hideHearts() {
+            heartsContainer.style.display = "none";
+        }
+
+        // Poem animation
         function showPoemAnimated(text) {
-            const poemDiv = document.getElementById('poem');
             poemDiv.innerHTML = "";
             let i = 0;
-            let lineStart = 0;
             function typeChar() {
                 if (i <= text.length) {
                     let current = text.slice(0, i);
@@ -289,6 +343,7 @@ I Love You, Mom!
             typeChar();
         }
 
+        // Confetti animation
         function showConfetti() {
             for (let i = 0; i < 40; i++) {
                 let conf = document.createElement('div');
@@ -303,20 +358,15 @@ I Love You, Mom!
             }
         }
 
+        // Save answers and show poem
         function saveAndShowPoem() {
-            // Save to localStorage
             localStorage.setItem('mothersDayAnswers', JSON.stringify(answers));
-            // Hide questions and hearts, show poem
-            document.getElementById('question-area').style.display = "none";
+            questionArea.style.display = "none";
             hideHearts();
-            document.getElementById('poem').style.display = "block";
+            poemDiv.style.display = "block";
             showConfetti();
             showPoemAnimated(poemText);
         }
-
-        // Start
-        showQuestion(current);
-        showHearts();
     </script>
 </body>
 </html>
