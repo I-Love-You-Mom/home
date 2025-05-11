@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mom's Answers</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0fff7;
+            color: #333;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+        }
+        h1 {
+            color: #2e8b57;
+        }
+        .answer {
+            margin-bottom: 18px;
+            padding: 12px;
+            background: #e0fff4;
+            border-radius: 8px;
+            border-left: 4px solid #2e8b57;
+        }
+        .question {
+            font-weight: bold;
+        }
+        .no-answers {
+            color: #c0392b;
+            font-size: 1.1em;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mom's Answers</h1>
+    <div id="answers"></div>
+    <script>
+        // Retrieve answers from localStorage
+        const answers = JSON.parse(localStorage.getItem('mothersDayAnswers') || "[]");
+        let output = "";
+        if (answers.length === 0) {
+            output = "<div class='no-answers'>No answers found.<br>(Make sure the quiz was completed on this device and browser!)</div>";
+        } else {
+            answers.forEach((item, idx) => {
+                output += `<div class="answer"><span class="question">${idx+1}. ${item.question}</span><br>Answer: ${item.answer}</div>`;
+            });
+        }
+        document.getElementById('answers').innerHTML = output;
+    </script>
+</body>
+</html>
